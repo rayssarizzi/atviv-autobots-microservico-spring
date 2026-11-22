@@ -1,0 +1,86 @@
+package com.autobots.automanager.controles;
+
+import com.autobots.automanager.entidades.Cliente;
+import com.autobots.automanager.entidades.Telefone;
+import com.autobots.automanager.modelo.TelefoneAtualizador;
+import com.autobots.automanager.repositorios.ClienteRepositorio;
+import com.autobots.automanager.repositorios.TelefoneRepositorio;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestController
+@org.springframework.transaction.annotation.Transactional
+@RequestMapping("/telefone")
+public class TelefoneControle {
+  @Autowired private TelefoneRepositorio repositorio;
+  @Autowired private ClienteRepositorio clienteRepositorio;
+
+  @GetMapping("/telefone/{id}")
+  public Telefone obterTelefone(@PathVariable long id) {
+    return repositorio
+        .findById(id)
+        .orElseThrow(
+            () ->
+                new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Registro não encontrado"));
+  }
+
+  @GetMapping("/telefones")
+  public List<Telefone> obterTelefones() {
+    return repositorio.findAll();
+  }
+
+  @GetMapping("/cliente/{clienteId}")
+  public List<Telefone> obterTelefonesDoCliente(@PathVariable long clienteId) {
+    Cliente cliente =
+        clienteRepositorio
+            .findById(clienteId)
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado"));
+    return cliente.getTelefones();
+  }
+
+  @PostMapping("/cadastro/{clienteId}")
+  public void cadastrarTelefone(@PathVariable long clienteId, @RequestBody Telefone telefone) {
+    Cliente cliente =
+        clienteRepositorio
+            .findById(clienteId)
+            .orElseThrow(
+                () ->
+                    new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Registro não encontrado"));
+    cliente.getTelefones().add(telefone);
+    clienteRepositorio.save(cliente);
+  }
+
+  @PutMapping("/atualizar")
+  public void atualizarTelefone(@RequestBody Telefone atualizacao) {
+    Telefone telefone = repositorio.getById(atualizacao.getId());
+    TelefoneAtualizador atualizador = new TelefoneAtualizador();
+    atualizador.atualizar(telefone, atualizacao);
+    repositorio.save(telefone);
+  }
+
+  @DeleteMapping("/excluir/{clienteId}")
+  public void excluirTelefone(@PathVariable long clienteId, @RequestBody Telefone exclusao) {
+    Cliente cliente =
+        clienteRepositorio
+            .findById(clienteId)
+            .orElseThrow(
+                () ->
+                    new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Registro não encontrado"));
+    cliente.getTelefones().removeIf(t -> java.util.Objects.equals(t.getId(), exclusao.getId()));
+    clienteRepositorio.save(cliente);
+  }
+}
